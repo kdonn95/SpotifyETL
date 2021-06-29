@@ -8,10 +8,37 @@ import datetime
 import sqlite3
 from pprint import pprint
 
-# Read local `config.ini` file.
+# read local `config.ini` file which contains database and token details
 config = configparser.ConfigParser()
 config.read('config.ini')
 token = config.get('DETAILS', 'TOKEN')
+
+
+def check_if_valid_data(df: pd.DataFrame) -> bool:
+    # checking response code
+    if r.status_code == 200:
+        print("OK. The request has succeeded.")
+    else:
+        print("There has been an error. Please check you have a valid token.")
+
+    # checking if dataframe is empty
+    # reasons could be empty: something went wrong in extract stage or no songs were listened to in last 24 hours
+    if df.empty:
+        print("No songs downloaded. Execution finished.")
+        return False
+
+    # primary key check, using played_at as primary key
+    if pd.Series(df["played_at"]).is_unique:
+        pass
+    else:
+        raise Exception("Primary key check is violated.")
+
+    # checking for nulls
+    if df.isnull().values.any():
+        raise Exception("Null values found.")
+
+    return True
+
 
 if __name__ == "__main__":
     # populating fields according to API instructions
@@ -21,9 +48,10 @@ if __name__ == "__main__":
         "Authorization": f"Bearer {token}"
     }
 
-    today = datetime.datetime.now()
+    today = datetime.datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
     yesterday = today - datetime.timedelta(days=1)
     yesterday_unix_timestamp = int(yesterday.timestamp()) * 1000
+    today_unix_timestamp = int(today.timestamp()) * 1000
 
     r = requests.get(f"https://api.spotify.com/v1/me/player/recently-played?after={yesterday_unix_timestamp}"
                      , headers=headers)
@@ -55,4 +83,8 @@ if __name__ == "__main__":
     song_df = pd.DataFrame(song_dict, columns=["song_name", "artist_name", "played_at", "timestamp"])
 
     pd.set_option('display.max_columns', None)
-    print(song_df)
+    # print(song_df)
+
+    # validation
+    if check_if_valid_data(song_df):
+        print("Data has been validated. Proceed to load stage.")
