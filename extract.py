@@ -1,3 +1,4 @@
+import configparser
 import sqlalchemy
 import pandas as pd
 from sqlalchemy.orm import sessionmaker
@@ -7,25 +8,25 @@ import datetime
 import sqlite3
 from pprint import pprint
 
-# creating constants
-DATABASE_LOCATION = "sqlite://my_played_tracks.sqlite"
-USER_ID = "kd2187"
-TOKEN = "BQClU3Yiq6bvHhGBU6fes39pfznTf8e7Q8w8hlILYIV50PVIUiobgYwVo91D2CGQUFtY_oQng0XNnzGcuvzT16MLuF8wiaD_9EYkKN_-SrN2-iHcUV8SUbpUU15nXw4qt48MdlIYVoGQ1T0"
+# Read local `config.ini` file.
+config = configparser.ConfigParser()
+config.read('config.ini')
+token = config.get('DETAILS', 'TOKEN')
 
 if __name__ == "__main__":
     # populating fields according to API instructions
     headers = {
         "Accept": "application/json",
         "Content-Type": "application/json",
-        "Authorization": "Bearer {token}".format(token=TOKEN)
+        "Authorization": f"Bearer {token}"
     }
 
     today = datetime.datetime.now()
     yesterday = today - datetime.timedelta(days=1)
     yesterday_unix_timestamp = int(yesterday.timestamp()) * 1000
 
-    r = requests.get("https://api.spotify.com/v1/me/player/recently-played?after={time}".
-                     format(time=yesterday_unix_timestamp), headers=headers)
+    r = requests.get(f"https://api.spotify.com/v1/me/player/recently-played?after={yesterday_unix_timestamp}"
+                     , headers=headers)
 
     data = r.json()
 
@@ -51,7 +52,7 @@ if __name__ == "__main__":
         "timestamp": timestamps
     }
 
-    song_df = pd.DataFrame(song_dict, columns=["song_name", "artist_names", "played_at", "timestamp"])
+    song_df = pd.DataFrame(song_dict, columns=["song_name", "artist_name", "played_at", "timestamp"])
 
     pd.set_option('display.max_columns', None)
-    # print(song_df)
+    print(song_df)
