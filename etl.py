@@ -1,7 +1,6 @@
 import configparser
 import sqlalchemy
 import pandas as pd
-from sqlalchemy.orm import sessionmaker
 import requests
 from datetime import datetime
 import datetime
@@ -11,7 +10,8 @@ from pprint import pprint
 # read local `config.ini` file which contains database and token details
 config = configparser.ConfigParser()
 config.read('config.ini')
-token = config.get('DETAILS', 'TOKEN')
+token = config.get('USER DETAILS', 'TOKEN')
+database = config.get('USER DETAILS', 'DATABASE_LOCATION')
 
 
 def check_if_valid_data(df: pd.DataFrame) -> bool:
@@ -87,3 +87,33 @@ if __name__ == "__main__":
     # validation
     if check_if_valid_data(song_df):
         print("Data has been validated. Proceed to load stage.")
+
+    # load
+
+    # initiating connection to database
+    conn = sqlite3.connect('my_played_tracks.sqlite')
+    # cursor allows us to refer to specific rows in the database
+    cursor = conn.cursor()
+
+    sql_query = """
+    CREATE TABLE IF NOT EXISTS my_played_tracks(
+        song_name VARCHAR(200),
+        artist_name VARCHAR(200),
+        played_at VARCHAR(200),
+        timestamp VARCHAR(200),
+        CONSTRAINT primary_key_constraint PRIMARY KEY (played_at)
+    )
+    """
+
+    cursor.execute(sql_query)
+    print("Database created.")
+
+    # writing the dataframe to an SQL database
+    try:
+        song_df.to_sql("my_played_tracks", conn, index=False, if_exists="append")
+    except:
+        print("Data already exists in database.")
+
+    conn.close()
+    print("Database closed.")
+
