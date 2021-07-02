@@ -131,3 +131,4 @@ dmypy.json
 .idea/
 
 config.ini
+my_played_tracks.sqlite
